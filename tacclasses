@@ -1,129 +1,88 @@
-users.html
-List of TACACS+ users with edit and delete actions.
+import os
+import shutil
+import subprocess
+from datetime import datetime
 
-html
-Copy
-Edit
-{% extends "layout.html" %}
-{% block title %}TACACS+ Users{% endblock %}
+CONFIG_PATH = "/etc/tacacs/tac_plus.conf"
+BACKUP_DIR = "/etc/tacacs/backups"
 
-{% block content %}
-<h1 class="text-2xl font-bold mb-4">TACACS+ Users</h1>
+def ensure_backup_dir():
+    if not os.path.exists(BACKUP_DIR):
+        os.makedirs(BACKUP_DIR, exist_ok=True)
 
-{% if users %}
-  <table class="min-w-full table-auto border-collapse border border-gray-300">
-    <thead>
-      <tr class="bg-gray-200">
-        <th class="border border-gray-300 px-4 py-2 text-left">Username</th>
-        <th class="border border-gray-300 px-4 py-2 text-left">Privilege</th>
-        <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for user in users %}
-        <tr class="hover:bg-gray-100">
-          <td class="border border-gray-300 px-4 py-2">{{ user.name }}</td>
-          <td class="border border-gray-300 px-4 py-2">{{ user.privilege }}</td>
-          <td class="border border-gray-300 px-4 py-2">
-            <a href="{{ url_for('edit_user', username=user.name) }}" class="text-blue-600 hover:underline mr-2">Edit</a>
-            <a href="{{ url_for('delete_user', username=user.name) }}" class="text-red-600 hover:underline" onclick="return confirm('Delete user {{ user.name }}?');">Delete</a>
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% else %}
-  <p>No TACACS+ users found.</p>
-{% endif %}
+def read_config():
+    """Read the current TACACS+ config file and return its content."""
+    with open(CONFIG_PATH, 'r') as f:
+        return f.read()
 
-<div class="mt-4">
-  <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Back to Dashboard</a>
-  <a href="{{ url_for('add_user') }}" class="ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add User</a>
-</div>
-{% endblock %}
-radius_users.html
-List FreeRADIUS users (could be called "clients" or "users" depending on your setup).
+def write_config(new_content):
+    """
+    Backup current config and overwrite with new_content.
+    Return True on success, False otherwise.
+    """
+    try:
+        ensure_backup_dir()
 
-html
-Copy
-Edit
-{% extends "layout.html" %}
-{% block title %}FreeRADIUS Users{% endblock %}
+        # Backup current config with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = os.path.join(BACKUP_DIR, f"tac_plus.conf.bak_{timestamp}")
+        shutil.copy2(CONFIG_PATH, backup_file)
 
-{% block content %}
-<h1 class="text-2xl font-bold mb-4">FreeRADIUS Users</h1>
+        # Write new config
+        with open(CONFIG_PATH, 'w') as f:
+            f.write(new_content)
 
-{% if radius_users %}
-  <table class="min-w-full table-auto border-collapse border border-gray-300">
-    <thead>
-      <tr class="bg-gray-200">
-        <th class="border border-gray-300 px-4 py-2 text-left">Username</th>
-        <th class="border border-gray-300 px-4 py-2 text-left">Service Type</th>
-        <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for user in radius_users %}
-        <tr class="hover:bg-gray-100">
-          <td class="border border-gray-300 px-4 py-2">{{ user.name }}</td>
-          <td class="border border-gray-300 px-4 py-2">{{ user.service }}</td>
-          <td class="border border-gray-300 px-4 py-2">
-            <a href="{{ url_for('edit_radius_user', username=user.name) }}" class="text-blue-600 hover:underline mr-2">Edit</a>
-            <a href="{{ url_for('delete_radius_user', username=user.name) }}" class="text-red-600 hover:underline" onclick="return confirm('Delete FreeRADIUS user {{ user.name }}?');">Delete</a>
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% else %}
-  <p>No FreeRADIUS users found.</p>
-{% endif %}
+        return True
+    except Exception as e:
+        print(f"Error writing config: {e}")
+        return False
 
-<div class="mt-4">
-  <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Back to Dashboard</a>
-  <a href="{{ url_for('add_radius_user') }}" class="ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add FreeRADIUS User</a>
-</div>
-{% endblock %}
-groups.html
-Groups (TACACS+ or FreeRADIUS), listing group names and members count.
+def list_backups():
+    """Return list of backup filenames sorted descending by creation time."""
+    if not os.path.exists(BACKUP_DIR):
+        return []
 
-html
-Copy
-Edit
-{% extends "layout.html" %}
-{% block title %}Groups{% endblock %}
+    backups = [f for f in os.listdir(BACKUP_DIR) if f.startswith("tac_plus.conf.bak_")]
+    backups.sort(reverse=True)
+    return backups
 
-{% block content %}
-<h1 class="text-2xl font-bold mb-4">Groups</h1>
+def read_backup(filename):
+    """Read content of a backup file."""
+    backup_path = os.path.join(BACKUP_DIR, filename)
+    if not os.path.exists(backup_path):
+        return None
+    with open(backup_path, 'r') as f:
+        return f.read()
 
-{% if groups %}
-  <table class="min-w-full table-auto border-collapse border border-gray-300">
-    <thead>
-      <tr class="bg-gray-200">
-        <th class="border border-gray-300 px-4 py-2 text-left">Group Name</th>
-        <th class="border border-gray-300 px-4 py-2 text-left">Members</th>
-        <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for group in groups %}
-        <tr class="hover:bg-gray-100">
-          <td class="border border-gray-300 px-4 py-2">{{ group.name }}</td>
-          <td class="border border-gray-300 px-4 py-2">{{ group.member_count }}</td>
-          <td class="border border-gray-300 px-4 py-2">
-            <a href="{{ url_for('edit_group', group_name=group.name) }}" class="text-blue-600 hover:underline mr-2">Edit</a>
-            <a href="{{ url_for('delete_group', group_name=group.name) }}" class="text-red-600 hover:underline" onclick="return confirm('Delete group {{ group.name }}?');">Delete</a>
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% else %}
-  <p>No groups found.</p>
-{% endif %}
+def validate_config():
+    """
+    Validate the TACACS+ config by running tac_plus with -t option.
+    Returns (bool is_valid, output str).
+    """
+    try:
+        # tac_plus -t tests the config for syntax errors
+        result = subprocess.run(['tac_plus', '-t', '-f', CONFIG_PATH], capture_output=True, text=True)
+        is_valid = (result.returncode == 0)
+        output = result.stdout + result.stderr
+        return is_valid, output
+    except Exception as e:
+        return False, str(e)
 
-<div class="mt-4">
-  <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Back to Dashboard</a>
-  <a href="{{ url_for('add_group') }}" class="ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add Group</a>
-</div>
-{% endblock %}
+def get_service_status():
+    """
+    Check if the tac_plus service (docker container) is running.
+    Returns 'active', 'inactive', or 'unknown'.
+    """
+    try:
+        # Check docker container status (named tac_plus)
+        result = subprocess.run(['docker', 'inspect', '-f', '{{.State.Running}}', 'tac_plus'], capture_output=True, text=True)
+        if result.returncode == 0:
+            status_str = result.stdout.strip()
+            if status_str == 'true':
+                return 'active'
+            else:
+                return 'inactive'
+        else:
+            return 'unknown'
+    except Exception:
+        return 'unknown'
