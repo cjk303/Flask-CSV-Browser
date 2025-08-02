@@ -1,179 +1,129 @@
+users.html
+List of TACACS+ users with edit and delete actions.
 
-layout.html
-html
-Copy
-Edit
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}TacAdmin{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-  <nav class="bg-white shadow p-4 flex justify-between items-center">
-    <a href="{{ url_for('index') }}" class="font-bold text-xl text-blue-600">TacAdmin</a>
-    <div>
-      {% if current_user.is_authenticated %}
-        <span class="mr-4 text-gray-700">Logged in as {{ current_user.id }}</span>
-        <a href="{{ url_for('logout') }}" class="text-blue-600 hover:underline">Logout</a>
-      {% else %}
-        <a href="{{ url_for('login') }}" class="text-blue-600 hover:underline">Login</a>
-      {% endif %}
-    </div>
-  </nav>
-
-  <main class="flex-grow max-w-5xl mx-auto p-6 bg-white shadow rounded mt-6 mb-6">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="mb-4">
-          {% for category, message in messages %}
-            <div class="p-3 mb-2 rounded {{ 'bg-green-200 text-green-800' if category == 'success' else 'bg-red-200 text-red-800' if category == 'error' else 'bg-blue-200 text-blue-800' }}">
-              {{ message }}
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-  </main>
-
-  <footer class="bg-white text-center p-4 shadow-inner text-sm text-gray-500">
-    &copy; 2025 TacAdmin
-  </footer>
-</body>
-</html>
-index.html
 html
 Copy
 Edit
 {% extends "layout.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}TACACS+ Users{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-4">Dashboard</h1>
+<h1 class="text-2xl font-bold mb-4">TACACS+ Users</h1>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-  <div class="p-4 border rounded shadow">
-    <h2 class="text-xl font-semibold mb-2">TACACS+ Service</h2>
-    <p>Status: 
-      {% if service_status == 'active' %}
-        <span class="text-green-600 font-bold">Running</span>
-      {% elif service_status == 'inactive' %}
-        <span class="text-red-600 font-bold">Stopped</span>
-      {% else %}
-        <span class="text-gray-600 font-bold">Unknown</span>
-      {% endif %}
-    </p>
-  </div>
-
-  <div class="p-4 border rounded shadow">
-    <h2 class="text-xl font-semibold mb-2">Config Validation</h2>
-    {% if config_valid %}
-      <p class="text-green-600 font-bold">Config is valid</p>
-    {% else %}
-      <p class="text-red-600 font-bold">Config is invalid</p>
-      {% if validation_output %}
-        <pre class="bg-gray-100 p-2 rounded mt-2 text-sm">{{ validation_output }}</pre>
-      {% endif %}
-    {% endif %}
-  </div>
-
-  <div class="p-4 border rounded shadow">
-    <h2 class="text-xl font-semibold mb-2">Backups</h2>
-    <p>{{ backup_count }} backups available</p>
-    <a href="{{ url_for('view_backups') }}" class="text-blue-600 hover:underline">View Backups</a>
-  </div>
-
-</div>
-
-<div class="mt-8">
-  <a href="{{ url_for('edit_tacacs') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Edit TACACS+ Config</a>
-</div>
-{% endblock %}
-login.html
-html
-Copy
-Edit
-{% extends "layout.html" %}
-{% block title %}Login{% endblock %}
-
-{% block content %}
-<h2 class="text-2xl font-bold mb-4">Login</h2>
-
-<form method="POST" class="space-y-4 max-w-sm">
-    <div>
-        <label>Username</label>
-        <input type="text" name="username" class="p-2 border rounded w-full" required>
-    </div>
-    <div>
-        <label>Password</label>
-        <input type="password" name="password" class="p-2 border rounded w-full" required>
-    </div>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Login</button>
-</form>
-{% endblock %}
-edit_tacacs.html
-html
-Copy
-Edit
-{% extends "layout.html" %}
-{% block title %}Edit TACACS+ Config{% endblock %}
-
-{% block content %}
-<h1 class="text-2xl font-bold mb-4">Edit TACACS+ Config</h1>
-
-<form method="POST">
-  <textarea name="config" rows="20" class="w-full p-3 border rounded font-mono text-sm">{{ config }}</textarea>
-  <button type="submit" class="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save</button>
-</form>
-
-<div class="mt-4">
-  <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Back to Dashboard</a>
-</div>
-{% endblock %}
-backups.html
-html
-Copy
-Edit
-{% extends "layout.html" %}
-{% block title %}Backups{% endblock %}
-
-{% block content %}
-<h1 class="text-2xl font-bold mb-4">Backups</h1>
-
-{% if backups %}
-  <ul class="list-disc pl-5">
-    {% for backup in backups %}
-      <li>
-        <a href="{{ url_for('view_backup_file', backup_name=backup) }}" class="text-blue-600 hover:underline">{{ backup }}</a>
-      </li>
-    {% endfor %}
-  </ul>
+{% if users %}
+  <table class="min-w-full table-auto border-collapse border border-gray-300">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="border border-gray-300 px-4 py-2 text-left">Username</th>
+        <th class="border border-gray-300 px-4 py-2 text-left">Privilege</th>
+        <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr class="hover:bg-gray-100">
+          <td class="border border-gray-300 px-4 py-2">{{ user.name }}</td>
+          <td class="border border-gray-300 px-4 py-2">{{ user.privilege }}</td>
+          <td class="border border-gray-300 px-4 py-2">
+            <a href="{{ url_for('edit_user', username=user.name) }}" class="text-blue-600 hover:underline mr-2">Edit</a>
+            <a href="{{ url_for('delete_user', username=user.name) }}" class="text-red-600 hover:underline" onclick="return confirm('Delete user {{ user.name }}?');">Delete</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% else %}
-  <p>No backups found.</p>
+  <p>No TACACS+ users found.</p>
 {% endif %}
 
 <div class="mt-4">
   <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Back to Dashboard</a>
+  <a href="{{ url_for('add_user') }}" class="ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add User</a>
 </div>
 {% endblock %}
-backup_view.html
+radius_users.html
+List FreeRADIUS users (could be called "clients" or "users" depending on your setup).
+
 html
 Copy
 Edit
 {% extends "layout.html" %}
-{% block title %}Backup: {{ backup_name }}{% endblock %}
+{% block title %}FreeRADIUS Users{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Backup: {{ backup_name }}</h1>
+<h1 class="text-2xl font-bold mb-4">FreeRADIUS Users</h1>
 
-<pre class="bg-gray-100 p-4 rounded font-mono text-sm overflow-x-auto">{{ content }}</pre>
+{% if radius_users %}
+  <table class="min-w-full table-auto border-collapse border border-gray-300">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="border border-gray-300 px-4 py-2 text-left">Username</th>
+        <th class="border border-gray-300 px-4 py-2 text-left">Service Type</th>
+        <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in radius_users %}
+        <tr class="hover:bg-gray-100">
+          <td class="border border-gray-300 px-4 py-2">{{ user.name }}</td>
+          <td class="border border-gray-300 px-4 py-2">{{ user.service }}</td>
+          <td class="border border-gray-300 px-4 py-2">
+            <a href="{{ url_for('edit_radius_user', username=user.name) }}" class="text-blue-600 hover:underline mr-2">Edit</a>
+            <a href="{{ url_for('delete_radius_user', username=user.name) }}" class="text-red-600 hover:underline" onclick="return confirm('Delete FreeRADIUS user {{ user.name }}?');">Delete</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No FreeRADIUS users found.</p>
+{% endif %}
 
 <div class="mt-4">
-  <a href="{{ url_for('view_backups') }}" class="text-blue-600 hover:underline">Back to Backups</a>
+  <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Back to Dashboard</a>
+  <a href="{{ url_for('add_radius_user') }}" class="ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add FreeRADIUS User</a>
 </div>
 {% endblock %}
-If you want any other pages or want me to bundle the entire project into one downloadable ZIP with these
+groups.html
+Groups (TACACS+ or FreeRADIUS), listing group names and members count.
+
+html
+Copy
+Edit
+{% extends "layout.html" %}
+{% block title %}Groups{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Groups</h1>
+
+{% if groups %}
+  <table class="min-w-full table-auto border-collapse border border-gray-300">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="border border-gray-300 px-4 py-2 text-left">Group Name</th>
+        <th class="border border-gray-300 px-4 py-2 text-left">Members</th>
+        <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in groups %}
+        <tr class="hover:bg-gray-100">
+          <td class="border border-gray-300 px-4 py-2">{{ group.name }}</td>
+          <td class="border border-gray-300 px-4 py-2">{{ group.member_count }}</td>
+          <td class="border border-gray-300 px-4 py-2">
+            <a href="{{ url_for('edit_group', group_name=group.name) }}" class="text-blue-600 hover:underline mr-2">Edit</a>
+            <a href="{{ url_for('delete_group', group_name=group.name) }}" class="text-red-600 hover:underline" onclick="return confirm('Delete group {{ group.name }}?');">Delete</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No groups found.</p>
+{% endif %}
+
+<div class="mt-4">
+  <a href="{{ url_for('index') }}" class="text-blue-600 hover:underline">Back to Dashboard</a>
+  <a href="{{ url_for('add_group') }}" class="ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add Group</a>
+</div>
+{% endblock %}
